@@ -1,12 +1,31 @@
+import 'package:clima/services/weather.dart';
 import 'package:flutter/material.dart';
 import 'package:clima/utilities/constants.dart';
+import 'city_screen.dart';
 
 class LocationScreen extends StatefulWidget {
+  final decoded;
+
+  LocationScreen(this.decoded);
+
   @override
   _LocationScreenState createState() => _LocationScreenState();
 }
 
 class _LocationScreenState extends State<LocationScreen> {
+  double temperature;
+  String message;
+  String weatherIcon;
+
+  WeatherModel weatherModel = new WeatherModel();
+
+  @override
+  void initState() {
+    super.initState();
+
+    updateUI(widget.decoded);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,14 +48,29 @@ class _LocationScreenState extends State<LocationScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
                   FlatButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      var weatherData = await weatherModel.getLocationData();
+                      updateUI(weatherData);
+                    },
                     child: Icon(
                       Icons.near_me,
                       size: 50.0,
                     ),
                   ),
                   FlatButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      var typeName = await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) {
+                          return CityScreen();
+                        }),
+                      );
+
+                      if(typeName != null) {
+                        var weatherData = await weatherModel.getLocationName(typeName);
+                        updateUI(weatherData);
+                      }
+                    },
                     child: Icon(
                       Icons.location_city,
                       size: 50.0,
@@ -49,11 +83,11 @@ class _LocationScreenState extends State<LocationScreen> {
                 child: Row(
                   children: <Widget>[
                     Text(
-                      '32°',
+                      '${temperature.toInt()}°',
                       style: kTempTextStyle,
                     ),
                     Text(
-                      '☀️',
+                      ' $weatherIcon',
                       style: kConditionTextStyle,
                     ),
                   ],
@@ -62,7 +96,7 @@ class _LocationScreenState extends State<LocationScreen> {
               Padding(
                 padding: EdgeInsets.only(right: 15.0),
                 child: Text(
-                  "It's 🍦 time in San Francisco!",
+                  message,
                   textAlign: TextAlign.right,
                   style: kMessageTextStyle,
                 ),
@@ -72,5 +106,25 @@ class _LocationScreenState extends State<LocationScreen> {
         ),
       ),
     );
+  }
+
+  void updateUI(dynamic weather) {
+    setState(() {
+      if (weather == null) {
+        temperature = 0;
+        message = 'Error: Cannot connect to the internet';
+        weatherIcon = '';
+        return;
+      }
+
+
+
+      print(weather['main']['temp']);
+
+      temperature = double.parse(weather['main']['temp'].toString());
+      message = weatherModel.getMessage(temperature) + ' in ' + weather['name'];
+      weatherIcon = weatherModel.getWeatherIcon(weather['weather'][0]['id']);
+      print(weatherIcon);
+    });
   }
 }
